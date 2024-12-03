@@ -15,6 +15,15 @@
 __global__ void assign_labels_cuda(double* points, double* centroids, int* labels, int* changes, int num_points, int num_dimensions, int k) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+    // Memória compartilhada para mudanças locais do bloco
+    __shared__ int shared_changes;
+
+    // Inicializar a variável em memória compartilhada
+    if (threadIdx.x == 0) {
+        shared_changes = 0;
+    }
+    __syncthreads();
+
     if (idx < num_points) {
         int nearest_centroid = 0;
         double min_distance = 1e20;
@@ -32,11 +41,18 @@ __global__ void assign_labels_cuda(double* points, double* centroids, int* label
             }
         }
 
-        // Atualizar rótulo
+        // Atualizar rótulo se necessário
         if (labels[idx] != nearest_centroid) {
-            atomicAdd(changes, 1);
+            // Acumular mudanças na memória compartilhada
             labels[idx] = nearest_centroid;
+            shared_changes++;
         }
+    }
+    __syncthreads();
+
+    // Somar mudanças locais na variável global (feito apenas pelo thread 0 do bloco)
+    if (threadIdx.x == 0) {
+        *changes += shared_changes;
     }
 }
 
@@ -61,6 +77,7 @@ void assign_labels_with_cuda(double points[NUM_POINTS][NUM_DIMENSIONS], int labe
 
     // Chamar o kernel CUDA
     assign_labels_cuda << <num_blocks, threads_per_block >> > (d_points, d_centroids, d_labels, d_changes, NUM_POINTS, NUM_DIMENSIONS, K);
+    cudaDeviceSynchronize();
 
     // Copiar resultados de volta para o host
     cudaMemcpy(labels, d_labels, NUM_POINTS * sizeof(int), cudaMemcpyDeviceToHost);
