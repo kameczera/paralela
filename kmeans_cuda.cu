@@ -47,10 +47,7 @@ __global__ void assign_labels_cuda(double* points, double* centroids, int* label
             labels[idx] = nearest_centroid;
             shared_changes++;
         }
-    }
-    __syncthreads();
-
-    // Somar mudanças locais na variável global (feito apenas pelo thread 0 do bloco)
+    }    // Somar mudanças locais na variável global (feito apenas pelo thread 0 do bloco)
     if (threadIdx.x == 0) {
         *changes += shared_changes;
     }
@@ -74,9 +71,13 @@ void assign_labels_with_cuda(double points[NUM_POINTS][NUM_DIMENSIONS], int labe
 
     int threads_per_block = 256;
     int num_blocks = (NUM_POINTS + threads_per_block - 1) / threads_per_block;
-
     // Chamar o kernel CUDA
+    double start = omp_get_wtime();
     assign_labels_cuda << <num_blocks, threads_per_block >> > (d_points, d_centroids, d_labels, d_changes, NUM_POINTS, NUM_DIMENSIONS, K);
+    double end = omp_get_wtime();
+
+    printf("Tempo de execução: %f segundos\n", end - start);
+
     cudaDeviceSynchronize();
 
     // Copiar resultados de volta para o host
