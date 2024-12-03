@@ -61,7 +61,6 @@ void assign_labels_with_cuda(double points[NUM_POINTS][NUM_DIMENSIONS], int labe
 
     // Chamar o kernel CUDA
     assign_labels_cuda << <num_blocks, threads_per_block >> > (d_points, d_centroids, d_labels, d_changes, NUM_POINTS, NUM_DIMENSIONS, K);
-    cudaDeviceSynchronize();
 
     // Copiar resultados de volta para o host
     cudaMemcpy(labels, d_labels, NUM_POINTS * sizeof(int), cudaMemcpyDeviceToHost);
