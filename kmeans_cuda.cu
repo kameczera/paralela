@@ -69,7 +69,7 @@ void assign_labels_with_cuda(double points[NUM_POINTS][NUM_DIMENSIONS], int labe
     cudaMemcpy(d_centroids, centroids, K * NUM_DIMENSIONS * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_changes, changes, sizeof(int), cudaMemcpyHostToDevice);
 
-    int threads_per_block = 256;
+    int threads_per_block = 512;
     int num_blocks = (NUM_POINTS + threads_per_block - 1) / threads_per_block;
     // Chamar o kernel CUDA
     double start = omp_get_wtime();
